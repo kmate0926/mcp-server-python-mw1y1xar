@@ -1,0 +1,44 @@
+name: MCP server checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pytest
+      - name: Syntax and unit tests
+        run: |
+          python -m compileall -q server.py
+          python -m pytest -q
+      - name: Unauthenticated MCP is blocked, health endpoint is public
+        env:
+          MCP_API_TOKEN: ci-placeholder-token-not-secret
+        run: |
+          python server.py > /tmp/mcp.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:10000/health; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:10000/health
+          status=$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:10000/mcp)
+          if [ "$status" != "401" ]; then
+            cat /tmp/mcp.log
+            echo "Expected 401, got $status"
+            exit 1
+          fi
