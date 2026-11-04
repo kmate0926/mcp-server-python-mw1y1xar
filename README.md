@@ -1,5 +1,12 @@
 # Tippmix Analyst MCP server — Render Free
 
+## One-click Render Free deployment
+
+[Deploy this Tippmix MCP server on Render Free](https://render.com/deploy?repo=https://github.com/kmate0926/mcp-server-python-mw1y1xar)
+
+**Important:** Select the linked repository `kmate0926/mcp-server-python-mw1y1xar` and Free plan; review the new service before approving it. Do not deploy another Render-generated `mcp-server-python-*` repository. `MCP_API_TOKEN` is created as a secret by the Blueprint. The separate `OPENAI_API_KEY` and `OPENAI_MODEL` must be configured in Render Environment for model calls; do not commit credentials to GitHub.
+
+
 This is a **research-only** MCP server for the six Tippmix Analyst sport modules. It is not a live Tippmix odds source, an automated bet placer, or an independent verification engine.
 
 ## Install on Render Free
