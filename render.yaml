@@ -12,7 +12,6 @@ services:
         generateValue: true
       - key: PORT
         value: "10000"
-      - key: OPENAI_API_KEY
-        sync: false
-      - key: OPENAI_MODEL
-        sync: false
+      - key: FREE_ONLY_MODE
+        value: "true"
+      # No paid API credentials needed in this free configuration.
