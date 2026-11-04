@@ -47,6 +47,31 @@ jobs:
           from mcp import ClientSession
           from mcp.client.streamable_http import streamablehttp_client
 
+          import json
+
+          async def check_six_sports(session):
+              for sport in (
+                  "football", "basketball", "tennis",
+                  "american_football", "ice_hockey", "handball"
+              ):
+                  high = sport + "-synthetic-high"
+                  low = sport + "-synthetic-low"
+                  data = {"markets": [
+                      {"sport": sport, "event_identifier": high, "event": "SYNTHETIC TEST",
+                       "official_odds": 1.95, "source": "SYNTHETIC_NOT_VERIFIED"},
+                      {"sport": sport, "event_identifier": low, "event": "SYNTHETIC TEST",
+                       "official_odds": 1.55, "source": "SYNTHETIC_NOT_VERIFIED"},
+                  ]}
+                  response = await session.call_tool(
+                      "analyze_" + sport, {"markets_json": json.dumps(data)}
+                  )
+                  assert not response.isError, sport
+                  serialized = str(response)
+                  assert "deterministic_free_only_no_api" in serialized, sport
+                  assert high in serialized, sport
+                  assert low not in serialized, sport
+              print("All 6 sport MCP tool calls: OK (free-only 1.80+ filter)")
+
           async def verify():
               async with streamablehttp_client(
                   "http://127.0.0.1:10000/mcp",
@@ -65,5 +90,37 @@ jobs:
                       result = await session.call_tool("get_capabilities", {})
                       assert not result.isError
                       print("Authenticated MCP initialize, tools/list, tools/call: OK")
+                      await check_six_sports(session)
           asyncio.run(verify())
+          PY
+
+      - name: Public live Render Free deployment smoke test
+        run: |
+          python - <<'PY'
+          import json
+          import time
+          import urllib.error
+          import urllib.request
+
+          origin = "https://tippmix-analyst-mcp.onrender.com"
+          last = None
+          for attempt in range(5):
+              try:
+                  with urllib.request.urlopen(origin + "/health", timeout=120) as response:
+                      assert response.status == 200
+                      health = json.load(response)
+                      assert health["status"] == "ok", health
+                  print("Live Render /health: HTTP 200 OK")
+                  break
+              except Exception as exc:
+                  last = type(exc).__name__ + ": " + str(exc)
+                  if attempt == 4:
+                      raise RuntimeError("Live health check failed: " + last)
+                  time.sleep(8)
+          try:
+              urllib.request.urlopen(origin + "/mcp", timeout=120)
+              raise AssertionError("Expected unauthenticated /mcp to be blocked")
+          except urllib.error.HTTPError as exc:
+              assert exc.code == 401, exc.code
+          print("Live Render /mcp without token: HTTP 401 OK")
           PY
