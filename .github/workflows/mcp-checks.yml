@@ -42,3 +42,28 @@ jobs:
             echo "Expected 401, got $status"
             exit 1
           fi
+          python - <<'PY'
+          import asyncio
+          from mcp import ClientSession
+          from mcp.client.streamable_http import streamablehttp_client
+
+          async def verify():
+              async with streamablehttp_client(
+                  "http://127.0.0.1:10000/mcp",
+                  headers={"Authorization": "Bearer ci-placeholder-token-not-secret"},
+                  timeout=15,
+              ) as (read, write, _):
+                  async with ClientSession(read, write) as session:
+                      await session.initialize()
+                      found = {t.name for t in (await session.list_tools()).tools}
+                      expected = {
+                          "analyze_football", "analyze_basketball", "analyze_tennis",
+                          "analyze_american_football", "analyze_ice_hockey",
+                          "analyze_handball", "get_capabilities",
+                      }
+                      assert found == expected, (found, expected)
+                      result = await session.call_tool("get_capabilities", {})
+                      assert not result.isError
+                      print("Authenticated MCP initialize, tools/list, tools/call: OK")
+          asyncio.run(verify())
+          PY
