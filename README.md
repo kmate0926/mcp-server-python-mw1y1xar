@@ -9,6 +9,12 @@
 
 This is a **research-only** MCP server for the six Tippmix Analyst sport modules. It is not a live Tippmix odds source, an automated bet placer, or an independent verification engine.
 
+## Zero-cost mode (default)
+
+This server is now configured with `FREE_ONLY_MODE=true`. It **never calls the OpenAI API** in this mode, even if an API key is configured. The six sport tools apply deterministic research-only filters to input supplied by the caller. They return no independently verified statistics, ST scores, probabilities, EV estimates, betting recommendations, or approved Trixies. No API key is required for the free configuration.
+
+The Render Free service has platform resource limits. An old separate `my-mcp-server` Free service also exists in this workspace; it has **not** been deleted or changed.
+
 ## Install on Render Free
 
 If you already have a Render service, open **Settings → Build & Deploy** and make sure its connected repository is `kmate0926/mcp-server-python-mw1y1xar` with branch `main`. If not, connect this repository or create a new Free web service from it. Changing a different repository will not deploy this code.
@@ -22,8 +28,8 @@ If you already have a Render service, open **Settings → Build & Deploy** and m
 
 In **Render → Environment**, set:
 - `MCP_API_TOKEN`: long random secret; must be set in production (also supported by `render.yaml` blueprint).
-- `OPENAI_API_KEY`: your **OpenAI API platform** key (not your ChatGPT subscription).
-- `OPENAI_MODEL`: a model ID actually available to your API account.
+- `FREE_ONLY_MODE`: `true` — blocks all external AI API calls; this is set on the running Render service.
+- No `OPENAI_API_KEY` is needed for free mode; do not turn on paid model calls without explicit approval.
 - `PORT`: Render supplies it automatically; `10000` also works.
 
 **Do not paste keys in chat or commit them to GitHub.**
@@ -33,7 +39,7 @@ In **Render → Environment**, set:
 The MCP server exposes six independently callable functions:
 `analyze_football`, `analyze_basketball`, `analyze_tennis`, `analyze_american_football`, `analyze_ice_hockey`, `analyze_handball`; and `get_capabilities`.
 
-Each analysis tool expects one `markets_json` string containing `{"markets":[...]}`. Each market can have `sport`, `event_identifier`, `event`, `event_start_hu`, `market_exact`, `selection`, `official_odds`, `source`, `observed_at_hu`, and `evidence`. The server validates IDs and passes only supplied market information to a separate OpenAI Responses API call, then returns at most five **research-only** candidates. If the API key/model isn't configured, it returns `OPENAI_API_NOT_CONFIGURED`. It never fabricates verified odds or A-category picks.
+Each analysis tool expects one `markets_json` string containing `{"markets":[...]}`. Each market can have `sport`, `event_identifier`, `event`, `event_start_hu`, `market_exact`, `selection`, `official_odds`, `source`, `observed_at_hu`, and `evidence`. In free mode the server validates supplied IDs, excludes observed odds below 1.80, and returns up to five **research-only** records by input-data completeness. It makes no network/model calls. It never fabricates verified odds or A-category picks.
 
 ## Verification procedure
 
